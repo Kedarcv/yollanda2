@@ -4,9 +4,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
+// Define the Bill type
+type Bill = {
+  id: number;
+  serviceName: string;
+  date: string;
+  basePrice: number;
+  totalCharge: number;
+};
 export default function BillsScreen() {
   const colorScheme = useColorScheme();
-  const [bills, setBills] = useState([]);
+  const [bills, setBills] = useState<Bill[]>([]);
 
   useEffect(() => {
     loadBills();
@@ -23,10 +31,9 @@ export default function BillsScreen() {
     }
   };
 
-  const removeItem = async (id: any) => {
+  const removeItem = async (id: number) => {
     try {
-
-      const updatedBills = bills.filter((bill: { id: any }) => bill.id !== id);
+      const updatedBills = bills.filter((bill) => bill.id !== id);
       await AsyncStorage.setItem('bills', JSON.stringify(updatedBills));
       setBills(updatedBills);
     } catch (error) {
@@ -35,9 +42,8 @@ export default function BillsScreen() {
   };
 
   const proceedToCheckout = async () => {
+    const total = bills.reduce((sum, bill) => sum + bill.totalCharge, 0);
 
-    const total = bills.reduce((sum, bill) => sum + (bill.basePrice + 20), 0);
-    
     const paymentData = {
       amount: total,
       reference: `GAMMA-${Date.now()}`,
@@ -58,8 +64,9 @@ export default function BillsScreen() {
 
       const result = await response.json();
       if (result.success) {
-        // Handle successful payment initiation
         Alert.alert('Success', 'Payment initiated successfully');
+      } else {
+        throw new Error('Payment initiation failed');
       }
     } catch (error) {
       Alert.alert('Error', 'Payment initiation failed');

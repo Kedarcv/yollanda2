@@ -1,104 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { useAppointments } from '@/context/AppointmentContext';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function AppointmentsScreen() {
-  const colorScheme = useColorScheme() ?? 'light'; // Fallback to 'light' if undefined
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [selectedService, setSelectedService] = useState(null);
-
-  const services = [
-    { id: 1, title: 'Patch Test', basePrice: 75 },
-    { id: 2, title: 'Medical Drug Allergy Test', basePrice: 100 },
-    { id: 3, title: 'Autoimmune Screen', basePrice: 150 },
-  ];
-
-  const bookAppointment = async (service: { id: number; title: string; basePrice: number }) => {
-    const appointmentCharge = 20;
-    const totalCharge = service.basePrice + appointmentCharge;
-
-    const appointment = {
-      id: Date.now(),
-      serviceId: service.id,
-      serviceName: service.title,
-      date: selectedDate.toISOString(),
-      basePrice: service.basePrice,
-      appointmentCharge,
-      totalCharge,
-      status: 'pending',
-    };
-
-    try {
-      const existingBills = (await AsyncStorage.getItem('bills')) || '[]';
-      const billsArray = JSON.parse(existingBills);
-      billsArray.push(appointment);
-      await AsyncStorage.setItem('bills', JSON.stringify(billsArray));
-    } catch (error) {
-      console.error('Error saving appointment:', error);
-    }
-  };
+  const colorScheme = useColorScheme();
+  const { appointments } = useAppointments();
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: Colors[colorScheme].text }]}>
-          Book Your Appointment
-        </Text>
-      </View>
-
-      <View style={styles.datePickerContainer}>
-        <TouchableOpacity
-          style={styles.dateButton}
-          onPress={() => setShowDatePicker(true)}
-        >
-          <Text style={styles.dateButtonText}>Select Date</Text>
-        </TouchableOpacity>
-        <Text style={styles.selectedDate}>
-          Selected: {selectedDate.toLocaleDateString()}
-        </Text>
-      </View>
-
-      {showDatePicker && (
-        <DateTimePicker
-          value={selectedDate}
-          mode="date"
-          minimumDate={new Date()}
-          onChange={(event, date) => {
-            setShowDatePicker(false);
-            if (date) setSelectedDate(date);
-          }}
-        />
-      )}
-
-      <View style={styles.servicesContainer}>
-        {services.map((service) => (
-          <TouchableOpacity
-            key={service.id}
-            style={styles.serviceCard}
-            onPress={() => {
-              if (!selectedService || selectedService.id !== service.id) {
-                setSelectedService(service);
-                bookAppointment(service);
-              }
-            }}
-          >
-            <Text style={styles.serviceTitle}>{service.title}</Text>
-            <Text style={styles.servicePrice}>
-              Base Price: ${service.basePrice}
-            </Text>
-            <Text style={styles.appointmentCharge}>
-              Appointment Charge: $20
-            </Text>
-            <Text style={styles.totalPrice}>
-              Total: ${service.basePrice + 20}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+    <ScrollView style={[styles.container, { backgroundColor: Colors[colorScheme ?? 'light'].background }]}>
+      <Text style={[styles.title, { color: Colors[colorScheme ?? 'light'].text }]}>Your Appointments</Text>
+      {appointments.map((appointment) => (
+        <View key={appointment.id} style={styles.appointmentCard}>
+          <Text style={styles.appointmentService}>{appointment.service}</Text>
+          <Text style={styles.appointmentDate}>
+            Date: {new Date(appointment.date).toLocaleDateString()}
+          </Text>
+          <Text style={styles.appointmentPrice}>Price: ${appointment.price}</Text>
+        </View>
+      ))}
     </ScrollView>
   );
 }
@@ -106,41 +27,16 @@ export default function AppointmentsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
     padding: 20,
-    marginTop: 40,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
+    marginBottom: 20,
   },
-  datePickerContainer: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  dateButton: {
-    backgroundColor: Colors.light.tint,
-    padding: 15,
-    borderRadius: 10,
-    width: '80%',
-  },
-  dateButtonText: {
-    color: 'white',
-    textAlign: 'center',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  selectedDate: {
-    marginTop: 10,
-    fontSize: 16,
-  },
-  servicesContainer: {
-    padding: 20,
-  },
-  serviceCard: {
+  appointmentCard: {
     backgroundColor: 'white',
-    padding: 20,
+    padding: 15,
     borderRadius: 10,
     marginBottom: 15,
     shadowColor: '#000',
@@ -149,24 +45,17 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  serviceTitle: {
+  appointmentService: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 5,
   },
-  servicePrice: {
+  appointmentDate: {
     fontSize: 16,
-    color: Colors.light.tint,
+    marginBottom: 5,
   },
-  appointmentCharge: {
+  appointmentPrice: {
     fontSize: 16,
-    color: Colors.light.tint,
-    marginTop: 5,
-  },
-  totalPrice: {
-    fontSize: 18,
     fontWeight: 'bold',
-    marginTop: 10,
-    color: Colors.light.tint,
   },
 });
