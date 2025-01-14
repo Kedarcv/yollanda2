@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function AppointmentsScreen() {
-  const colorScheme = useColorScheme();
+  const colorScheme = useColorScheme() ?? 'light'; // Fallback to 'light' if undefined
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
@@ -16,7 +17,7 @@ export default function AppointmentsScreen() {
     { id: 3, title: 'Autoimmune Screen', basePrice: 150 },
   ];
 
-  const bookAppointment = async (service: { id: any; title: any; basePrice: any; }) => {
+  const bookAppointment = async (service: { id: number; title: string; basePrice: number }) => {
     const appointmentCharge = 20;
     const totalCharge = service.basePrice + appointmentCharge;
 
@@ -28,11 +29,11 @@ export default function AppointmentsScreen() {
       basePrice: service.basePrice,
       appointmentCharge,
       totalCharge,
-      status: 'pending'
+      status: 'pending',
     };
 
     try {
-      const existingBills = await AsyncStorage.getItem('bills') || '[]';
+      const existingBills = (await AsyncStorage.getItem('bills')) || '[]';
       const billsArray = JSON.parse(existingBills);
       billsArray.push(appointment);
       await AsyncStorage.setItem('bills', JSON.stringify(billsArray));
@@ -44,13 +45,13 @@ export default function AppointmentsScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: Colors[colorScheme ?? 'light'].text }]}>
+        <Text style={[styles.title, { color: Colors[colorScheme].text }]}>
           Book Your Appointment
         </Text>
       </View>
 
       <View style={styles.datePickerContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.dateButton}
           onPress={() => setShowDatePicker(true)}
         >
@@ -66,7 +67,7 @@ export default function AppointmentsScreen() {
           value={selectedDate}
           mode="date"
           minimumDate={new Date()}
-          onChange={(event: any, date: React.SetStateAction<Date>) => {
+          onChange={(event, date) => {
             setShowDatePicker(false);
             if (date) setSelectedDate(date);
           }}
@@ -79,8 +80,10 @@ export default function AppointmentsScreen() {
             key={service.id}
             style={styles.serviceCard}
             onPress={() => {
-              setSelectedService(service);
-              bookAppointment(service);
+              if (!selectedService || selectedService.id !== service.id) {
+                setSelectedService(service);
+                bookAppointment(service);
+              }
             }}
           >
             <Text style={styles.serviceTitle}>{service.title}</Text>
@@ -167,4 +170,3 @@ const styles = StyleSheet.create({
     color: Colors.light.tint,
   },
 });
-sgp_fd1b4edb60bf82b8_bfbeb66756c9033e72005e5ce075bb8b57fdc473
